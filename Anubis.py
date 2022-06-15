@@ -2,12 +2,11 @@
 #############      this project is part of my graduation project and it intends to make a fully functioned IDE from scratch    ########
 #############      I've borrowed a function (serial_ports()) from a guy in stack overflow whome I can't remember his name, so I gave hime the copyrights of this function, thank you  ########
 
-
+import Coloring_feature
 import sys
 import glob
 import serial
 
-import Python_Coloring
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
@@ -69,6 +68,8 @@ class Signal(QObject):
 # Making text editor as A global variable (to solve the issue of being local to (self) in widget class)
 text = QTextEdit
 text2 = QTextEdit
+extension = QTextEdit
+file_name = QTextEdit
 
 #
 #
@@ -87,22 +88,22 @@ class text_widget(QWidget):
         self.itUI()
     def itUI(self):
         global text
+        global extension
         text = QTextEdit()
-        Python_Coloring.PythonHighlighter(text)
+        extension = QTextEdit()
+        self.commonHiglighter_object = Coloring_feature.highlight(text, extension='py')
         hbox = QHBoxLayout()
         hbox.addWidget(text)
         self.setLayout(hbox)
 
-
+    def extnet_hange(self, new_extension):
+        self.commonHiglighter_object.set_extension(new_extension)
 
 #
 #
 ############ end of Class ############
 #
 #
-
-
-
 #
 #
 #
@@ -112,6 +113,8 @@ class text_widget(QWidget):
 #
 #
 #
+
+
 class Widget(QWidget):
 
     def __init__(self):
@@ -122,13 +125,16 @@ class Widget(QWidget):
 
         # This widget is responsible of making Tab in IDE which makes the Text editor looks nice
         tab = QTabWidget()
-        tx = text_widget()
-        tab.addTab(tx, "Tab"+"1")
+        self.tx = text_widget()
+        tab.addTab(self.tx, "Tab"+"1")
 
         # second editor in which the error messeges and succeeded connections will be shown
         global text2
         text2 = QTextEdit()
         text2.setReadOnly(True)
+
+        global file_name
+        file_name = QTextEdit()
         # defining a Treeview variable to use it in showing the directory included files
         self.treeview = QTreeView()
 
@@ -185,7 +191,8 @@ class Widget(QWidget):
     # defining a new Slot (takes string) to save the text inside the first text editor
     @pyqtSlot(str)
     def Saving(s):
-        with open('main.py', 'w') as f:
+        save_with_name = file_name.toPlainText()  if file_name.toPlainText() != '' else 'main'
+        with open(save_with_name + '_saved_by_Anubis' + '.' + extension.toPlainText() , 'w') as f:
             TEXT = text.toPlainText()
             f.write(TEXT)
 
@@ -197,14 +204,21 @@ class Widget(QWidget):
 
     def on_clicked(self, index):
 
+
         nn = self.sender().model().filePath(index)
         nn = tuple([nn])
+        complete_file_name = nn[0].split('/')[-1]
+        complete_file_name_without_extension = complete_file_name[:complete_file_name.index('.')]
+        if nn[0][-2:] == 'py' or nn[0][-2:] == 'cs':
+            extension.setText(nn[0][-2:])
+            file_name.setText(complete_file_name_without_extension)
+            self.tx.extnet_hange(nn[0][-2:])
+            if nn[0]:
+                f = open(nn[0],'r')
+                with f:
+                    data = f.read()
+                    text.setText(data)
 
-        if nn[0]:
-            f = open(nn[0],'r')
-            with f:
-                data = f.read()
-                text.setText(data)
 
 #
 #
